@@ -1,0 +1,64 @@
+name: supporthive1
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase
+  firebase_core: ^4.7.0
+  firebase_auth: ^6.4.0
+
+  # Auth
+  google_sign_in: ^6.1.6
+  flutter_facebook_auth: ^7.1.6
+
+  # Storage
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  # AI & Network
+  google_generative_ai: ^0.4.7
+  http: ^1.6.0
+  flutter_dotenv: ^5.1.0
+
+  # Video Calls
+  jitsi_meet_flutter_sdk: ^11.6.0
+
+  # Audio
+  just_audio: ^0.9.36
+  just_audio_background: ^0.0.1-beta.11
+
+  # Payments
+  razorpay_flutter: ^1.4.4
+  uuid: ^4.5.3
+  cloud_firestore: ^6.3.0
+  image_picker: ^1.2.2
+  provider: ^6.1.5+1
+  file_picker: ^8.0.3
+  dio: ^5.9.2
+  shared_preferences: ^2.5.5
+  flutter_local_notifications: ^22.0.1
+  timezone: ^0.11.0
+  firebase_storage: ^13.4.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/audios/Secret_To_Mastering_Your_Emotions_Dr_Sweta_Adatia_Raj_Shama_podcast.mp3
+    - assets/audios/nature_sound.mp3
+    - assets/audios/deep_relaxation_stress_relief.mp3
+    - assets/audios/piano_music_positive_energy.mp3
+    - assets/audios/meditation_music_with_ocean_waves.mp3
+    - .env
