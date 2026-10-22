@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supporthive1/view/screens/counselling/counselling_screen.dart';
 import '/model/expert_model.dart';
 import '/service/expert_firestore_service.dart';
 import '/view/screens/counselling/expert_app_theme.dart';
@@ -59,73 +60,92 @@ class _ExpertsScreenState extends State<ExpertsScreen>
           _buildExpertsList(),
         ],
       ),
-      floatingActionButton: _buildAdminFab(),
+      //floatingActionButton: _buildAdminFab(),
     );
   }
 
   // ── App bar ──────────────────────────────────────────────────────────────────
   Widget _buildAppBar() {
-    return SliverAppBar(
-      expandedHeight: 120,
-      floating: false,
-      pinned: true,
-      elevation: 0,
-      backgroundColor: Colors.transparent,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: const BoxDecoration(
-            gradient: AppTheme.headerGradient,
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(28),
-              bottomRight: Radius.circular(28),
-            ),
+  return SliverAppBar(
+    expandedHeight: 120,
+    floating: false,
+    pinned: true,
+    elevation: 0,
+    backgroundColor: Colors.transparent,
+    flexibleSpace: FlexibleSpaceBar(
+      background: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.headerGradient,
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(28),
+            bottomRight: Radius.circular(28),
           ),
-          child: SafeArea(
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    // Back Button
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const CounsellingScreen(),
+                          ),
+                        );
+                      },
+                      child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.2),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.verified_rounded,
-                            color: Colors.white, size: 20),
+                        child: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
-                      const SizedBox(width: 12),
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Licensed Experts',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                              )),
-                          Text('Professional psychiatric consultation',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              )),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Licensed Experts',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          'Professional psychiatric consultation',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
       ),
-    );
-  }
-
+    ),
+  );
+}
   // ── Free banner ──────────────────────────────────────────────────────────────
   Widget _buildFreeBanner() {
     return Padding(
@@ -320,18 +340,18 @@ class _ExpertsScreenState extends State<ExpertsScreen>
     );
   }
 
-  Widget _buildAdminFab() {
-    return FloatingActionButton.extended(
-      onPressed: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const AddExpertScreen()),
-      ),
-      backgroundColor: AppTheme.primary,
-      icon: const Icon(Icons.person_add_rounded, color: Colors.white),
-      label: const Text('Add Expert',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-    );
-  }
+  // Widget _buildAdminFab() {
+  //   return FloatingActionButton.extended(
+  //     onPressed: () => Navigator.push(
+  //       context,
+  //       MaterialPageRoute(builder: (_) => const AddExpertScreen()),
+  //     ),
+  //     backgroundColor: AppTheme.primary,
+  //     icon: const Icon(Icons.person_add_rounded, color: Colors.white),
+  //     label: const Text('Add Expert',
+  //         style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+  //   );
+  // }
 }
 
 // ── Expert Card ──────────────────────────────────────────────────────────────

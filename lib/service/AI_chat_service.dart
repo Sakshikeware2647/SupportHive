@@ -44,6 +44,7 @@ class ChatService {
     _model = GenerativeModel(
       model: 'gemini-2.5-flash-lite',
       apiKey: ApiKeys.geminiApiKey,
+      
       generationConfig: GenerationConfig(
         temperature: 0.85,        // Slightly higher = more varied responses
         maxOutputTokens: 512,

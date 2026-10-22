@@ -2,19 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:supporthive1/view/welcome_screen.dart';
+import 'package:supporthive1/view/screens/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // ✅ 1. Load ENV (must be first)
+  
   await dotenv.load(fileName: ".env");
 
-  // ✅ 2. Init Hive
   await Hive.initFlutter();
+  await Hive.openBox('gameBox');
+  await Hive.openBox('breathingSessions');
   await Hive.openBox('notesBox');
 
-  // ✅ 3. Init Firebase safely with try/catch
+  
   try {
     await Firebase.initializeApp(
       options: const FirebaseOptions(
@@ -26,7 +26,7 @@ Future<void> main() async {
       ),
     );
   } catch (e) {
-    // Already initialized — safe to ignore
+    
     debugPrint('Firebase already initialized: $e');
   }
 
@@ -34,7 +34,7 @@ Future<void> main() async {
 }
 
 class SupportHiveApp extends StatelessWidget {
-  const SupportHiveApp({super.key});
+  const SupportHiveApp({super.key}); 
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +46,7 @@ class SupportHiveApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFFF5F5F0),
         fontFamily: 'Roboto',
       ),
-      home: const WelcomeScreen(),
+      home: const SplashScreen(),
     );
   }
 }

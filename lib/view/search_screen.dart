@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supporthive1/view/games_screen.dart';
 import 'dart:async';
 
 // ─── Real screen imports ─────────────────────────────────────────────────────
@@ -105,14 +106,14 @@ Widget _screenFor(_Destination dest) {
 
     // ── Game — replace _PlaceholderScreen with your game screen ──────────────
     case _Destination.mindfulnessGame:
-      return const _PlaceholderScreen(title: 'Mindfulness Game');
+      return const MindfulGamesScreen();
   }
 }
 
 // ─── Placeholder — only for screens not yet built (Podcast & Game) ───────────
-class _PlaceholderScreen extends StatelessWidget {
-  final String title;
-  const _PlaceholderScreen({required this.title, super.key});
+class HomeScreen extends StatelessWidget {
+  //final String title;
+  const HomeScreen({super.key});
 
   static const Color _green = Color(0xFF4A6741);
 
@@ -128,11 +129,11 @@ class _PlaceholderScreen extends StatelessWidget {
               color: _green, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(title,
-            style: const TextStyle(
-                color: Colors.black87,
-                fontWeight: FontWeight.w700,
-                fontSize: 17)),
+        // title: Text(
+        //     style: const TextStyle(
+        //         color: Colors.black87,
+        //         fontWeight: FontWeight.w700,
+        //         fontSize: 17)),
       ),
       body: Center(
         child: Column(
@@ -149,14 +150,14 @@ class _PlaceholderScreen extends StatelessWidget {
                   color: _green, size: 36),
             ),
             const SizedBox(height: 16),
-            Text(title,
-                style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87)),
-            const SizedBox(height: 8),
-            const Text('Coming soon — connect your screen here',
-                style: TextStyle(color: Colors.grey, fontSize: 13)),
+            // Text(title,
+            //     style: const TextStyle(
+            //         fontSize: 20,
+            //         fontWeight: FontWeight.bold,
+            //         color: Colors.black87)),
+            // const SizedBox(height: 8),
+            // const Text('Coming soon — connect your screen here',
+            //     style: TextStyle(color: Colors.grey, fontSize: 13)),
           ],
         ),
       ),

@@ -106,21 +106,25 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       centerTitle: true,
       title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.spa_outlined, color: Colors.teal.shade600, size: 20),
-          const SizedBox(width: 6),
-          const Text(
-            'SUPPORTHIVE',
-            style: TextStyle(
-              color: _brandGreen,
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ],
+  mainAxisSize: MainAxisSize.min,
+  children: [
+    Image.asset(
+      'assets/images/logo_icon.png',
+      width: 40,
+      height: 40,
+    ),
+    SizedBox(width: 6),
+    const Text(
+      'SUPPORTHIVE',
+      style: TextStyle(
+        color: _brandGreen,
+        fontWeight: FontWeight.bold,
+        fontSize: 15,
+        letterSpacing: 0.5,
       ),
+    ),
+  ],
+),
       actions: [
         IconButton(
           icon: Stack(
@@ -244,10 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onPlayMusic: _controller.onPlayMusic,
             ),
             const PodcastSection(),
-            ActivitiesSection(
-              activities: _controller.activities,
-              onStartActivity: _controller.onStartActivity,
-            ),
+            const ActivitiesSection(),
             const SizedBox(height: 90),
           ],
         ),

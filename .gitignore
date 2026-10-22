@@ -1,8 +1,12 @@
+
+# ==========================================
 # Miscellaneous
+# ==========================================
 *.class
 *.log
 *.pyc
 *.swp
+*.tmp
 .DS_Store
 .atom/
 .build/
@@ -12,45 +16,72 @@
 .swiftpm/
 migrate_working_dir/
 
-# IntelliJ related
+# ==========================================
+# IntelliJ / Android Studio
+# ==========================================
 *.iml
 *.ipr
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# VS Code
+# Uncomment the next line if you want to ignore VS Code settings
+# .vscode/
 
-# Flutter/Dart/Pub related
+# ==========================================
+# Environment secrets
+# ==========================================
+.env
+.env.*
+!.env.example
+
+# ==========================================
+# Flutter / Dart / Pub
+# ==========================================
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
 /build/
 /coverage/
 
-# Symbolication related
+# Symbolication
 app.*.symbols
 
-# Obfuscation related
+# Obfuscation
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# ==========================================
+# Android generated files
+# ==========================================
+/android/build/
+/android/.gradle/
+/android/local.properties
 /android/app/debug
 /android/app/profile
 /android/app/release
 
-assets/audios/
-*.mp3
+# Java heap dumps
+*.hprof
+java_pid*
 
-
-# Flutter generated files
+# ==========================================
+# Generated Flutter platform files
+# ==========================================
 **/flutter/generated_plugin_registrant.cc
 **/flutter/generated_plugin_registrant.h
 **/flutter/generated_plugins.cmake
 **/flutter/.flutter-plugins
 **/flutter/.flutter-plugins-dependencies
+
+# ==========================================
+# Audio assets
+# ==========================================
+assets/audios/
+*.mp3
+
+# Firebase service-account credentials
+assets/supporthive-d8c35-005fee915b0c.json

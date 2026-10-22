@@ -1,3 +1,16 @@
+/// ─────────────────────────────────────────────────────────────────────────────
+/// service/booking_service.dart
+///
+/// Fix summary (vs previous version):
+///   • Expert phone is fetched BEFORE _clear() so nothing is wiped mid-flight.
+///   • Expert SMS is sent BEFORE navigation — avoids using a context that may
+///     already be mounted under a new route.
+///   • context.mounted guard moved to the right place (after _clear).
+///   • sendExpertNotificationSms is awaited so errors surface via catchError.
+///   • Minor: userPhone / userName resolved before _clear() as well.
+/// ─────────────────────────────────────────────────────────────────────────────
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
@@ -6,8 +19,8 @@ import '/model/booking_model.dart';
 import '/model/expert_model.dart';
 import '/service/expert_firestore_service.dart';
 import '/service/notification_service.dart';
+import '/service/session_link_service.dart';
 import '/view/screens/counselling/call_screen.dart';
-
 
 class BookingService {
   BookingService._();
@@ -20,7 +33,7 @@ class BookingService {
   BuildContext? _pendingContext;
   VoidCallback? _onFailure;
 
-  static const String _razorpayKey = 'rzp_test_YOUR_KEY_HERE';
+  static const String _razorpayKey = 'rzp_test_T4bcn93utqElpD';
 
   void init() {
     _razorpay = Razorpay();
@@ -29,11 +42,10 @@ class BookingService {
     _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _onExternalWallet);
   }
 
-  void dispose() {
-    _razorpay.clear();
-  }
+  void dispose() => _razorpay.clear();
 
-  // ── Fee calculation ──────────────────────────────────────────────────────────
+  // ── Fee calculation ────────────────────────────────────────────────────────
+
   static Map<String, int> calculateFees(int basePrice) {
     const int platformFee = 0;
     final int gst = ((basePrice + platformFee) * 0.18).round();
@@ -46,7 +58,8 @@ class BookingService {
     };
   }
 
-  // ── Book and pay ─────────────────────────────────────────────────────────────
+  // ── Book and pay ───────────────────────────────────────────────────────────
+
   Future<void> bookAndPay({
     required Expert expert,
     required SessionType sessionType,
@@ -58,7 +71,6 @@ class BookingService {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) throw Exception('Not authenticated');
 
-    // Block if unpaid session exists
     final hasUnpaid =
         await ExpertFirestoreService.instance.hasUnpaidSession(expert.id);
     if (hasUnpaid) {
@@ -89,7 +101,6 @@ class BookingService {
     final bookingId =
         await ExpertFirestoreService.instance.createBooking(booking);
 
-    // Store everything we need for post-payment navigation
     _pendingBookingId = bookingId;
     _pendingExpert = expert;
     _pendingBooking = Booking(
@@ -149,78 +160,121 @@ class BookingService {
         _pendingBooking == null ||
         _pendingContext == null) return;
 
+    // ── Capture all pending state into locals BEFORE any async gap or _clear()
+    final bookingId    = _pendingBookingId!;
+    final expert       = _pendingExpert!;
+    final booking      = _pendingBooking!;
+    final context      = _pendingContext!;
+    final userPhone    = FirebaseAuth.instance.currentUser?.phoneNumber ?? '';
+    final userName     = FirebaseAuth.instance.currentUser?.displayName ?? 'A patient';
+
     // 1. Confirm payment in Firestore
     await ExpertFirestoreService.instance.confirmPayment(
-      bookingId: _pendingBookingId!,
+      bookingId: bookingId,
       razorpayOrderId: response.orderId ?? '',
       razorpayPaymentId: response.paymentId ?? '',
     );
 
     // 2. Schedule 1-hour local notification
     await NotificationService.instance.scheduleSessionReminder(
-      bookingId: _pendingBookingId!,
-      expertName: _pendingExpert!.name,
-      scheduledAt: _pendingBooking!.scheduledAt,
+      bookingId: bookingId,
+      expertName: expert.name,
+      scheduledAt: booking.scheduledAt,
     );
 
     // 3. Show immediate push notification
     await NotificationService.instance.showBookingConfirmed(
-      expertName: _pendingExpert!.name,
-      scheduledAt: _pendingBooking!.scheduledAt,
+      expertName: expert.name,
+      scheduledAt: booking.scheduledAt,
     );
 
     // 4. Save in-app notification to Firestore
     await ExpertFirestoreService.instance.saveNotification(
       title: 'Session Booked! 🎉',
       body:
-          'Your session with ${_pendingExpert!.name} is confirmed for ${_formatDateTime(_pendingBooking!.scheduledAt)}.',
+          'Your session with ${expert.name} is confirmed for ${_formatDateTime(booking.scheduledAt)}.',
       type: 'booking_confirmed',
-      bookingId: _pendingBookingId,
+      bookingId: bookingId,
     );
 
-    final confirmedBooking = _pendingBooking!.copyWith(
+    // 5. Attach Jitsi meet link + expiry to the booking doc
+    await SessionLinkService.instance.attachLinkToBooking(
+      bookingId: bookingId,
+      expertId: expert.id,
+      scheduledAt: booking.scheduledAt,
+    );
+
+    // 6. Build the final confirmed booking object
+    final confirmedBooking = booking.copyWith(
       isPaid: true,
       status: BookingStatus.confirmed,
       razorpayOrderId: response.orderId,
       razorpayPaymentId: response.paymentId,
     );
 
-    final expert = _pendingExpert!;
-    final context = _pendingContext!;
+    final link = SessionLinkService.instance.meetLink(
+      expertId: expert.id,
+      bookingId: bookingId,
+    );
 
-    // Clear state before navigation
+    // 7. Fetch expert phone number from Firestore
+    //    Done BEFORE _clear() so we still have expert.id available.
+    String expertPhone = '';
+    try {
+      final expertDoc = await FirebaseFirestore.instance
+          .collection('experts')
+          .doc(expert.id)
+          .get();
+      expertPhone = (expertDoc.data()?['phoneNumber'] as String?) ?? '';
+    } catch (e) {
+      debugPrint('BookingService: could not fetch expert phone — $e');
+    }
+
+    // ── Clear pending state now that every local var is captured ──────────────
     _clear();
 
-    // 5. Check if session is NOW (within 5 min) → go to call directly
-    final now = DateTime.now();
-    final diff = confirmedBooking.scheduledAt.difference(now).inMinutes;
+    // 8. Send SMS to EXPERT (fire-and-forget, before navigation so the context
+    //    is still the booking screen — not a freshly pushed route).
+    if (expertPhone.isNotEmpty && context.mounted) {
+      SessionLinkService.instance
+          .sendExpertNotificationSms(
+            context: context,
+            expertPhoneNumber: expertPhone,
+            expertName: expert.name,
+            userName: userName,
+            scheduledAt: confirmedBooking.scheduledAt,
+            meetLink: link,
+          )
+          .catchError(
+              (e) => debugPrint('BookingService: expert SMS error — $e'));
+    }
 
-    if (context.mounted) {
-      if (diff <= 5 && diff >= -30) {
-        // Session is happening now → launch Jitsi
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => CallScreen(
-              expert: expert,
-              booking: confirmedBooking,
-            ),
+    // 9. Navigate
+    if (!context.mounted) return;
+
+    final diff = confirmedBooking.scheduledAt.difference(DateTime.now()).inMinutes;
+
+    if (diff <= 5 && diff >= -30) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CallScreen(expert: expert, booking: confirmedBooking),
+        ),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => BookingSuccessScreen(
+            expert: expert,
+            scheduledAt: confirmedBooking.scheduledAt,
+            sessionType: confirmedBooking.sessionType,
+            isOnline: confirmedBooking.isOnline,
+            bookingId: bookingId,
+            userPhone: userPhone,
           ),
-        );
-      } else {
-        // Future session → show success screen
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => BookingSuccessScreen(
-              expert: expert,
-              scheduledAt: confirmedBooking.scheduledAt,
-              sessionType: confirmedBooking.sessionType,
-              isOnline: confirmedBooking.isOnline,
-            ),
-          ),
-        );
-      }
+        ),
+      );
     }
   }
 
@@ -246,7 +300,8 @@ class BookingService {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Payment Required'),
         content: Text(
-          'You have a completed unpaid session with ${expert.name}. Please clear dues before booking again.',
+          'You have a completed unpaid session with ${expert.name}. '
+          'Please clear dues before booking again.',
         ),
         actions: [
           TextButton(

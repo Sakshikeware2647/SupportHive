@@ -204,8 +204,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           color: Colors.teal.shade50,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(Icons.spa_outlined,
-                            size: 40, color: Colors.teal.shade600),
+                        child: Image.asset(
+                          'assets/images/logo_icon.png',
+                          width: 40,
+                          height: 40,
+                        )
                       ),
                       const SizedBox(height: 24),
 

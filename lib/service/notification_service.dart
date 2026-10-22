@@ -28,37 +28,37 @@ class NotificationService {
   static const NotificationDetails _details =
       NotificationDetails(android: _androidDetails);
 
-  // ── Init ──────────────────────────────────────────────────────────────────
+  // ── Init ──────────────────────────────────────────────────────
   Future<void> init() async {
     if (_initialized) return;
     tz.initializeTimeZones();
 
-    // v22: initialize() takes a single named param 'settings'
-    await _plugin.initialize(
-      settings: const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-        iOS: DarwinInitializationSettings(
-          requestAlertPermission: true,
-          requestBadgePermission: true,
-          requestSoundPermission: true,
-        ),
+    const initSettings = InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      iOS: DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
       ),
     );
 
-    await _plugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
+    // ── v17 API: no named 'settings' parameter ────────────────
+    await _plugin.initialize(initSettings);
 
     await _plugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestExactAlarmsPermission();
+    .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>()
+    ?.requestNotificationsPermission();
+
+await _plugin
+    .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>()
+    ?.requestExactAlarmsPermission();
 
     _initialized = true;
   }
 
-  // ── Schedule 1-hour reminder ──────────────────────────────────────────────
+  // ── Schedule 1-hour reminder ───────────────────────────────────
   Future<void> scheduleSessionReminder({
     required String bookingId,
     required String expertName,
@@ -91,71 +91,73 @@ class NotificationService {
     );
   }
 
-  // ── Internal schedule helper ───────────────────────────────────────────────
+  // ── Internal schedule helper ───────────────────────────────────
   Future<void> _scheduleAt({
     required int id,
     required String title,
     required String body,
     required DateTime scheduledAt,
   }) async {
-    // v22: zonedSchedule() uses all named parameters
+    // ── v17 API: positional parameters ────────────────────────
     await _plugin.zonedSchedule(
-      id: id,
-      title: title,
-      body: body,
-      scheduledDate: tz.TZDateTime.from(scheduledAt, tz.local),
-      notificationDetails: _details,
+      id,
+      title,
+      body,
+      tz.TZDateTime.from(scheduledAt, tz.local),
+      _details,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 
-  // ── Immediate: booking confirmed ──────────────────────────────────────────
+  // ── Immediate: booking confirmed ───────────────────────────────
   Future<void> showBookingConfirmed({
     required String expertName,
     required DateTime scheduledAt,
   }) async {
     if (!_initialized) await init();
-    // v22: show() uses all named parameters
+    // ── v17 API: positional parameters ────────────────────────
     await _plugin.show(
-      id: _uid(),
-      title: 'Session Confirmed ✅',
-      body: 'Your session with $expertName on ${_formatDateTime(scheduledAt)} is confirmed!',
-      notificationDetails: _details,
+      _uid(),
+      'Session Confirmed ✅',
+      'Your session with $expertName on ${_formatDateTime(scheduledAt)} is confirmed!',
+      _details,
     );
   }
 
-  // ── Immediate: payment success ────────────────────────────────────────────
+  // ── Immediate: payment success ─────────────────────────────────
   Future<void> showPaymentSuccess(String expertName) async {
     if (!_initialized) await init();
     await _plugin.show(
-      id: _uid(),
-      title: 'Payment Successful 💜',
-      body: 'Payment for your session with $expertName was successful.',
-      notificationDetails: _details,
+      _uid(),
+      'Payment Successful 💜',
+      'Payment for your session with $expertName was successful.',
+      _details,
     );
   }
 
-  // ── Immediate: generic ────────────────────────────────────────────────────
+  // ── Immediate: generic ─────────────────────────────────────────
   Future<void> showGeneral({
     required String title,
     required String body,
   }) async {
     if (!_initialized) await init();
     await _plugin.show(
-      id: _uid(),
-      title: title,
-      body: body,
-      notificationDetails: _details,
+      _uid(),
+      title,
+      body,
+      _details,
     );
   }
 
-  // ── Cancel ────────────────────────────────────────────────────────────────
+  // ── Cancel ─────────────────────────────────────────────────────
   Future<void> cancelReminder(String bookingId) async {
-    // v22: cancel() uses named param 'id'
-    await _plugin.cancel(id: bookingId.hashCode.abs() % 100000);
+    // ── v17 API: positional parameter ─────────────────────────
+    await _plugin.cancel(bookingId.hashCode.abs() % 100000);
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // ── Helpers ────────────────────────────────────────────────────
   int _uid() => DateTime.now().millisecondsSinceEpoch % 100000;
 
   String _formatTime(DateTime dt) {

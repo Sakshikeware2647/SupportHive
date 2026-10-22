@@ -9,7 +9,7 @@ plugins {
 android {
     namespace = "com.example.supporthive1"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
     isCoreLibraryDesugaringEnabled = true
@@ -27,7 +27,7 @@ kotlinOptions {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
 
         // 🔥 ADDED (required for Razorpay / large SDKs)
         multiDexEnabled = true

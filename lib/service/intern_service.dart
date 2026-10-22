@@ -1,30 +1,51 @@
+// ─────────────────────────────────────────────────────────────────
+// service/intern_service.dart
+// ─────────────────────────────────────────────────────────────────
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../model/intern_model.dart';
 
 class InternService {
+  InternService._();
+  static final InternService instance = InternService._();
 
-  List<Intern> getInterns() {
-    return [
-      Intern(
-        name: "Sarah Mitchell",
-        email: "sarah@gmail.com",
-        specialization: "Anxiety | Stress",
-        rating: 4.8,
-        isAvailable: true,
-      ),
-      Intern(
-        name: "Priya Sharma",
-        email: "priya@gmail.com",
-        specialization: "CBT | Career",
-        rating: 4.9,
-        isAvailable: true,
-      ),
-      Intern(
-        name: "Alex Thompson",
-        email: "alex@gmail.com",
-        specialization: "Depression | Anxiety",
-        rating: 4.7,
-        isAvailable: false,
-      ),
-    ];
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  CollectionReference<Map<String, dynamic>> get _col =>
+      _db.collection('interns');
+
+  // ── Real-time stream (used by user-side InternsScreen) ─────────
+  Stream<List<Intern>> internsStream() {
+    return _col.orderBy('name').snapshots().map(
+          (snap) => snap.docs
+              .map((doc) => Intern.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
+  }
+
+  // ── Admin CRUD ─────────────────────────────────────────────────
+
+  /// Adds a new intern. Returns the generated Firestore document ID.
+  Future<String> addIntern(Intern intern) async {
+    final ref = await _col.add(intern.toMap());
+    return ref.id;
+  }
+
+  /// Updates every field of an existing intern document.
+  Future<void> updateIntern(Intern intern) async {
+    await _col.doc(intern.internId).update(intern.toMap());
+  }
+
+  /// Toggle availability only.
+  Future<void> setAvailability(String internId, {required bool available}) =>
+      _col.doc(internId).update({'isAvailable': available});
+
+  /// Hard-delete an intern document.
+  Future<void> deleteIntern(String internId) => _col.doc(internId).delete();
+
+  // ── FCM token ──────────────────────────────────────────────────
+
+  Future<void> saveInternFcmToken(String internId, String token) async {
+    await _col.doc(internId).update({'fcmToken': token});
   }
 }

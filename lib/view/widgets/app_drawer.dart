@@ -5,6 +5,7 @@ import 'package:supporthive1/view/quiz.dart';
 import 'package:supporthive1/view/screens/counselling/ai_chat_screen.dart';
 import 'package:supporthive1/view/sign_in_screen.dart';
 import 'package:supporthive1/view/widgets/profile_screen.dart';
+import 'package:supporthive1/view/widgets/schedule_screen.dart';
 import 'package:supporthive1/view/widgets/wellness_status_screen.dart';
 import 'package:supporthive1/service/profile_service.dart'; // 🔥 added
 import 'package:supporthive1/model/user_profile_model.dart'; // 🔥 added
@@ -55,6 +56,7 @@ class AppDrawer extends StatelessWidget {
     return Drawer(
       backgroundColor: Colors.transparent,
       elevation: 0,
+      width: MediaQuery.of(context).size.width * 0.78,
       child: Container(
         decoration: const BoxDecoration(
           color: Color(0xFFF8F7F2),
@@ -101,7 +103,7 @@ class AppDrawer extends StatelessWidget {
                       // TODO: replace with const ScheduleScreen()
                       onTap: () => _navigate(
                         context,
-                        const _ComingSoonScreen(title: 'Schedule'),
+                        const ScheduleScreen(),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -139,15 +141,15 @@ class AppDrawer extends StatelessWidget {
                       // UserProfileModel param; now fetches the real profile.
                       onTap: () => _navigateToProfile(context),
                     ),
-                    _DrawerItem(
-                      icon: Icons.settings_rounded,
-                      title: 'Settings',
-                      // TODO: replace with const SettingsScreen()
-                      onTap: () => _navigate(
-                        context,
-                        const _ComingSoonScreen(title: 'Settings'),
-                      ),
-                    ),
+                    // _DrawerItem(
+                    //   icon: Icons.settings_rounded,
+                    //   title: 'Settings',
+                    //   // TODO: replace with const SettingsScreen()
+                    //   onTap: () => _navigate(
+                    //     context,
+                    //     const _ComingSoonScreen(title: 'Settings'),
+                    //   ),
+                    // ),
                   ],
                 ),
               ),
@@ -230,32 +232,36 @@ class _DrawerHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Icon(Icons.spa, color: Colors.white, size: 14),
-                    SizedBox(width: 5),
-                    Text(
-                      'SUPPORTHIVE',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+  children: [
+    Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset(
+            'assets/images/logo_icon.png',
+            width: 18,   // ← small size for drawer header
+            height: 18,
           ),
+          const SizedBox(width: 5),
+          const Text(
+            'SUPPORTHIVE',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ],
+      ),
+    ),
+  ],
+),
           const SizedBox(height: 20),
           Container(
             width: 56,

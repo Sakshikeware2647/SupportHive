@@ -1,17 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:supporthive1/view/screens/counselling/expert_app_theme.dart';
+import 'package:supporthive1/view/widgets/schedule_screen.dart';
 import '/model/expert_model.dart';
 import '/model/booking_model.dart';
 import '/view/screens/counselling/experts_screen.dart';
-import '/view/screens/counselling/call_screen.dart';
-import '/service/expert_firestore_service.dart';
 
-
+/// Shown after a successful Razorpay payment.
+///
+/// BookingService already handles:
+///   • attachLinkToBooking  (writes meetLink + linkExpiresAt to Firestore)
+///   • sendExpertNotificationSms  (sends Jitsi link to expert's phone)
+///   • scheduleSessionReminder + showBookingConfirmed  (local notifications)
+///
+/// This screen is purely presentational — no duplicate Firestore writes,
+/// no user SMS. Just animations, session details, and navigation.
 class BookingSuccessScreen extends StatefulWidget {
   final Expert expert;
   final DateTime scheduledAt;
   final SessionType sessionType;
   final bool isOnline;
+
+  /// The Firestore booking document ID.
+  final String bookingId;
+
+  /// Kept for API compatibility but no longer used for SMS.
+  final String? userPhone;
 
   const BookingSuccessScreen({
     super.key,
@@ -19,6 +32,8 @@ class BookingSuccessScreen extends StatefulWidget {
     required this.scheduledAt,
     required this.sessionType,
     required this.isOnline,
+    required this.bookingId,
+    this.userPhone,
   });
 
   @override
@@ -34,6 +49,7 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen>
   @override
   void initState() {
     super.initState();
+
     _ctrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 600));
     _scaleAnim = Tween<double>(begin: 0.5, end: 1.0).animate(
@@ -60,15 +76,14 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen>
     ];
     final h = dt.hour > 12 ? dt.hour - 12 : dt.hour == 0 ? 12 : dt.hour;
     final ampm = dt.hour >= 12 ? 'PM' : 'AM';
-    return '${weekdays[dt.weekday - 1]}, ${dt.day} ${months[dt.month - 1]} at $h:${dt.minute.toString().padLeft(2, '0')} $ampm';
+    return '${weekdays[dt.weekday - 1]}, ${dt.day} ${months[dt.month - 1]} '
+        'at $h:${dt.minute.toString().padLeft(2, '0')} $ampm';
   }
 
-  // ── Navigate back to ExpertsScreen WITHOUT popping to root ──────────────────
   void _goBackToExperts() {
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const ExpertsScreen()),
-      // Keep everything below ExpertsScreen intact (home/dashboard stays)
       (route) => route.settings.name == '/home' || route.isFirst == false,
     );
   }
@@ -76,7 +91,6 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen>
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      // Prevent back button from going to booking/payment screen
       canPop: false,
       onPopInvoked: (_) => _goBackToExperts(),
       child: Scaffold(
@@ -90,6 +104,7 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    // ── Success icon ───────────────────────────────────────
                     ScaleTransition(
                       scale: _scaleAnim,
                       child: Container(
@@ -104,19 +119,30 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen>
                       ),
                     ),
                     const SizedBox(height: 28),
-                    const Text('Booking Confirmed!',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800)),
+
+                    const Text(
+                      'Booking Confirmed!',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800),
+                    ),
                     const SizedBox(height: 8),
+
+                    // ── Updated subtitle — no mention of user SMS ──────────
                     Text(
-                      'Your session has been successfully booked.\nA reminder will be sent 1 hour before your session.',
+                      'Your session is confirmed. The expert has been '
+                      'notified with the session join link.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                          color: Colors.white.withOpacity(0.8), height: 1.5),
+                          color: Colors.white.withOpacity(0.85),
+                          height: 1.5,
+                          fontSize: 14),
                     ),
-                    const SizedBox(height: 32),
+
+                    const SizedBox(height: 28),
+
+                    // ── Session details card ───────────────────────────────
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
@@ -126,13 +152,15 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen>
                       ),
                       child: Column(
                         children: [
-                          _detailRow(Icons.person_rounded, widget.expert.name),
+                          _detailRow(
+                              Icons.person_rounded, widget.expert.name),
                           const SizedBox(height: 12),
                           _detailRow(
                             widget.sessionType == SessionType.video
                                 ? Icons.videocam_rounded
                                 : Icons.phone_rounded,
-                            '${widget.sessionType.name[0].toUpperCase()}${widget.sessionType.name.substring(1)} Call',
+                            '${widget.sessionType.name[0].toUpperCase()}'
+                            '${widget.sessionType.name.substring(1)} Call',
                           ),
                           const SizedBox(height: 12),
                           _detailRow(Icons.calendar_today_rounded,
@@ -145,14 +173,47 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen>
                             widget.isOnline ? 'Online' : 'In-person',
                           ),
                           const SizedBox(height: 12),
-                          _detailRow(Icons.notifications_active_rounded,
-                              'Reminder set 1 hour before'),
+                          _detailRow(
+                              Icons.notifications_active_rounded,
+                              'Reminder sent 1 hour before'),
+                          const Divider(color: Colors.white24, height: 24),
+
+                          // ── Expert notified row ────────────────────────
+                          _detailRow(
+                            Icons.sms_rounded,
+                            'Expert notified via SMS with join link',
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.timer_rounded,
+                                    color: Colors.white70, size: 13),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'Link valid for 15 min after session starts',
+                                    style: TextStyle(
+                                        color: Colors.white.withOpacity(0.8),
+                                        fontSize: 11),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
+
                     const SizedBox(height: 24),
 
-                    // ── Back to Experts (safe navigation) ──────────────────────
+                    // ── Back to Experts ────────────────────────────────────
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -160,13 +221,48 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen>
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: AppTheme.primary,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16)),
                         ),
-                        child: const Text('Back to Experts',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 15)),
+                        child: const Text(
+                          'Back to Experts',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 15),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // ── View Schedule ──────────────────────────────────────
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const ScheduleScreen()),
+        (route) => route.isFirst,
+      );
+    },
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(
+                              color: Colors.white54, width: 1.5),
+                          foregroundColor: Colors.white,
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: const Text(
+                          'View My Schedule',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 14),
+                              
+                        ),
+                        
                       ),
                     ),
                   ],
@@ -185,11 +281,13 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen>
         Icon(icon, color: Colors.white, size: 16),
         const SizedBox(width: 12),
         Expanded(
-          child: Text(text,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14)),
+          child: Text(
+            text,
+            style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+                fontSize: 14),
+          ),
         ),
       ],
     );

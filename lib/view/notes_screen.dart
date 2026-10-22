@@ -1,6 +1,3 @@
-// ─────────────────────────────────────────────
-//  screens/notes/notes_screen.dart  –  SupportHive
-// ─────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
 import '../../controller/note_controller.dart';
@@ -16,19 +13,17 @@ class NotesScreen extends StatefulWidget {
 
 class _NotesScreenState extends State<NotesScreen>
     with SingleTickerProviderStateMixin {
-  // Single controller instance lives here — shared with editor so the
-  // Firestore stream is not re-created on every navigation.
   final NoteController _controller = NoteController();
   final TextEditingController _searchController = TextEditingController();
   late AnimationController _fabAnim;
   bool _showSearch = false;
 
-  // ── Clean theme aligned with profile ─────────────────
+  //Clean theme
 static const List<Color> _cardColors = [
-  Color(0xFFFFFFFF), // pure white (primary)
-  Color(0xFFF5F5F0), // background soft
-  Color(0xFFE8F5E9), // subtle green tint
-  Color(0xFFF0F4EF), // light neutral green-grey
+  Color(0xFFFFFFFF), 
+  Color(0xFFF5F5F0), 
+  Color(0xFFE8F5E9), 
+  Color(0xFFF0F4EF), 
 ];
 
   @override
@@ -60,13 +55,13 @@ static const List<Color> _cardColors = [
     return '${date.day}/${date.month}/${date.year}';
   }
 
-  // ── Open Editor ───────────────────────────
+  // Opening the Editor
   Future<void> _openNew() async {
     _controller.startNewNote();
     await Navigator.push(context, _slideRoute(
       NoteEditorScreen(controller: _controller),
     ));
-    // Stream auto-refreshes – no manual setState needed
+    
   }
 
   Future<void> _openExisting(Note note) async {
@@ -88,7 +83,7 @@ static const List<Color> _cardColors = [
         transitionDuration: const Duration(milliseconds: 380),
       );
 
-  // ── Confirm delete ────────────────────────
+  // delete 
   Future<void> _confirmDelete(Note note) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -123,7 +118,7 @@ static const List<Color> _cardColors = [
     }
   }
 
-  // ── Build ─────────────────────────────────
+  //building
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -143,7 +138,7 @@ static const List<Color> _cardColors = [
     );
   }
 
-  // ── Header ────────────────────────────────
+  //Header
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 20, 16, 8),
@@ -207,7 +202,7 @@ static const List<Color> _cardColors = [
     );
   }
 
-  // ── Search bar ────────────────────────────
+  //Search bar 
   Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
@@ -243,7 +238,7 @@ static const List<Color> _cardColors = [
     );
   }
 
-  // ── Body ──────────────────────────────────
+  //Body
   Widget _buildBody() {
     return ListenableBuilder(
       listenable: _controller,
@@ -275,7 +270,7 @@ static const List<Color> _cardColors = [
     );
   }
 
-  // ── Empty state ───────────────────────────
+  //Empty state
   Widget _buildEmpty() {
     return Center(
       child: Column(
@@ -316,7 +311,7 @@ static const List<Color> _cardColors = [
     );
   }
 
-  // ── Note card ─────────────────────────────
+  //Note card
   Widget _buildCard(Note note, int index) {
     final bg = _cardColor(index);
     final accent = HSLColor.fromColor(bg)
@@ -345,7 +340,6 @@ static const List<Color> _cardColors = [
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top row: accent dot + mood emoji + options
               Row(
                 children: [
                   Container(
@@ -370,7 +364,7 @@ static const List<Color> _cardColors = [
               ),
               const SizedBox(height: 10),
 
-              // Title
+              //Title
               Text(
                 note.title,
                 maxLines: 2,
@@ -385,7 +379,7 @@ static const List<Color> _cardColors = [
               ),
               const SizedBox(height: 6),
 
-              // Content preview
+              //Content preview
               Expanded(
                 child: Text(
                   note.content,
@@ -421,7 +415,7 @@ static const List<Color> _cardColors = [
     );
   }
 
-  // ── FAB ───────────────────────────────────
+  //floating action button
   Widget _buildFAB() {
     return ScaleTransition(
       scale: CurvedAnimation(parent: _fabAnim, curve: Curves.elasticOut),
@@ -445,7 +439,7 @@ static const List<Color> _cardColors = [
     );
   }
 
-  // ── Helper ────────────────────────────────
+  //Helper
   Widget _iconBtn({required IconData icon, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,

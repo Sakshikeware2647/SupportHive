@@ -1,4 +1,7 @@
+
+
 import 'package:flutter/material.dart';
+import '../controller/game_controller.dart';
 
 class MindfulGamesScreen extends StatefulWidget {
   const MindfulGamesScreen({super.key});
@@ -8,158 +11,280 @@ class MindfulGamesScreen extends StatefulWidget {
 }
 
 class _MindfulGamesScreenState extends State<MindfulGamesScreen> {
-  String _selectedDifficulty = 'Easy';
+  late GameController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = GameController();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F0),
-      body: Column(
-        children: [
-          // Top Green Header Section
-          _buildHeader(),
-          
-          // Scrollable Content
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  
-                  // Difficulty Selection
-                  _buildDifficultySection(),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Game Card
-                  _buildGameCard(),
-                  
-                  const SizedBox(height: 20),
-                ],
+
+      body: AnimatedBuilder(
+        animation: controller,
+        builder: (_, __) {
+          return Column(
+            children: [
+              _buildHeader(),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.only(top: 20, bottom: 20),
+                  children: [
+                    _buildDifficultySection(),
+
+                    const SizedBox(height: 20),
+
+                    ///multiple games
+                    ...controller
+                        .getGamesByLevel(controller.selectedDifficulty)
+                        .map(
+                          (game) => Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 8,
+                            ),
+                            child: _buildGameCard(game),
+                          ),
+                        )
+                        ,
+                  ],
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
 
+  ///header 
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.only(bottom: 24),
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            const Color(0xFF4A6741),
-            const Color(0xFF5A7751),
-          ],
+          colors: [Color(0xFF4A6741), Color(0xFF6E8B5C)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
-        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
       ),
       child: SafeArea(
         child: Column(
           children: [
-            // Top Bar
+            /// top bar
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.person_outline, color: Colors.white),
-                        onPressed: () {},
-                      ),
-                      Stack(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.emoji_events_outlined, color: Colors.white),
-                            onPressed: () {},
-                          ),
-                          Positioned(
-                            right: 8,
-                            top: 8,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: Colors.orange,
-                                shape: BoxShape.circle,
-                              ),
-                              constraints: const BoxConstraints(
-                                minWidth: 16,
-                                minHeight: 16,
-                              ),
-                              child: const Text(
-                                '3',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.settings_outlined, color: Colors.white),
-                        onPressed: () {},
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.volume_up_outlined, color: Colors.white),
-                        onPressed: () {},
-                      ),
-                    ],
-                  ),
+                  const Spacer(),
+                  // const Icon(Icons.spa, color: Colors.white),
+                  Image.asset(
+                    'assets/images/logo_icon.png',
+                    width: 40,
+                    height: 40,
+
+                  )
                 ],
               ),
             ),
-            
-            // Title and Stats
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Mindful Games',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+
+            const SizedBox(height: 10),
+
+            ///title
+            const Text(
+              "Mindful Games",
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+
+            const SizedBox(height: 6),
+
+            const Text(
+              "Relax • Play • Heal",
+              style: TextStyle(color: Colors.white70),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  ///difficulty button 
+  Widget _buildDifficultySection() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _buildDifficultyBtn("Easy"),
+        _buildDifficultyBtn("Moderate"),
+        _buildDifficultyBtn("High"),
+      ],
+    );
+  }
+
+
+  Widget _buildDifficultyBtn(String difficulty) {
+    final selected = controller.selectedDifficulty == difficulty;
+
+    return GestureDetector(
+      onTap: () => controller.setDifficulty(difficulty),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF4A6741) : Colors.white,
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: Colors.green.withOpacity(0.3),
+                    blurRadius: 10,
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Relax through play',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white70,
-                    ),
+                ]
+              : [],
+        ),
+        child: Text(
+          difficulty,
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: selected ? Colors.white : Colors.black,
+          ),
+        ),
+      ),
+    );
+  }
+
+  ///game card
+  Widget _buildGameCard(game) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade100, Colors.purple.shade100],
+        ),
+      ),
+      child: Container(
+        margin: const EdgeInsets.all(2),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ///icon for difficulty
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: Colors.blue.shade50,
+                  child: Icon(Icons.air, size: 30, color: Colors.blue.shade400),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
                   ),
-                  const SizedBox(height: 20),
-                  
-                  // Stats Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildStatItem(Icons.stars, 'Points', '2230'),
-                      _buildStatItem(Icons.local_fire_department, 'Streak', '5 🔥'),
-                      _buildStatItem(Icons.sports_esports, 'Played', '60'),
-                    ],
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ],
+                  child: Text(
+                    game.difficulty,
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            /// title
+            Text(
+              game.title,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 6),
+
+            ///category
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(game.category, style: const TextStyle(fontSize: 12)),
+            ),
+
+            const SizedBox(height: 12),
+
+            ///description
+            Text(
+              game.description,
+              style: TextStyle(color: Colors.grey.shade700),
+            ),
+
+            const SizedBox(height: 12),
+
+            ///duration
+            Row(
+              children: [
+                const Icon(Icons.access_time, size: 16),
+                const SizedBox(width: 6),
+                Text(game.duration),
+              ],
+            ),
+
+            const SizedBox(height: 14),
+
+            //stats
+            Row(
+              children: [
+                _stat("😊", game.likes.toString()),
+                _stat("🔥", game.streakPoints.toString()),
+                _stat("⬆️", game.level.toString()),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            //Play button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  controller.openGame(context, game);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4A6741),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  "Play Now",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
           ],
@@ -168,294 +293,10 @@ class _MindfulGamesScreenState extends State<MindfulGamesScreen> {
     );
   }
 
-  Widget _buildStatItem(IconData icon, String label, String value) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.white70, size: 20),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.white70,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDifficultySection() {
+  Widget _stat(String e, String v) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Select Difficulty',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _buildDifficultyButton('Easy'),
-              const SizedBox(width: 12),
-              _buildDifficultyButton('Moderate'),
-              const SizedBox(width: 12),
-              _buildDifficultyButton('High'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDifficultyButton(String difficulty) {
-    final isSelected = _selectedDifficulty == difficulty;
-    
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedDifficulty = difficulty;
-          });
-        },
-        borderRadius: BorderRadius.circular(25),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF4A6741) : Colors.white,
-            borderRadius: BorderRadius.circular(25),
-            border: Border.all(
-              color: isSelected ? const Color(0xFF4A6741) : Colors.grey.shade300,
-              width: 2,
-            ),
-          ),
-          child: Text(
-            difficulty,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: isSelected ? Colors.white : Colors.black87,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGameCard() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Game Image/Icon Section
-          Container(
-            height: 180,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blue.shade200, Colors.purple.shade200],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-            ),
-            child: Stack(
-              children: [
-                Center(
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Icon(
-                      Icons.air,
-                      size: 60,
-                      color: Colors.blue.shade400,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'Easy',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Game Details
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Title
-                const Text(
-                  'Bubble Breathing',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                
-                // Category Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text(
-                    'Breathing',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.blue,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Duration
-                Row(
-                  children: [
-                    Icon(Icons.access_time, size: 16, color: Colors.grey.shade600),
-                    const SizedBox(width: 6),
-                    Text(
-                      '2-5 min',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 12),
-                
-                // Description
-                Text(
-                  'Follow gentle bubbles rising as you breathe in and out. Sync your breath with...',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade700,
-                    height: 1.5,
-                  ),
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Stats Row
-                Row(
-                  children: [
-                    _buildGameStat('😊', '150'),
-                    const SizedBox(width: 20),
-                    _buildGameStat('🔥', '450'),
-                    const SizedBox(width: 20),
-                    _buildGameStat('⬆️', '3'),
-                  ],
-                ),
-                
-                const SizedBox(height: 20),
-                
-                // Play Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      // Navigate to game screen
-                    },
-                    icon: const Icon(Icons.play_arrow, size: 24),
-                    label: const Text(
-                      'Play Now',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4A6741),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 2,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGameStat(String emoji, String value) {
-    return Row(
-      children: [
-        Text(
-          emoji,
-          style: const TextStyle(fontSize: 18),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
-        ),
-      ],
+      padding: const EdgeInsets.only(right: 16),
+      child: Row(children: [Text(e), const SizedBox(width: 4), Text(v)]),
     );
   }
 }

@@ -1,13 +1,31 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- ── Storage ─────────────────────────────────────────────────────────── -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO"/>
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+
+    <!-- ── Network ────────────────────────────────────────────────────────── -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>   <!-- Agora: required -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>      <!-- Agora: network switching -->
+
+    <!-- ── Camera (existing — keep for image picker) ──────────────────────── -->
     <uses-permission android:name="android.permission.CAMERA"/>
+
+    <!-- ── Audio (existing + Agora additions) ─────────────────────────────── -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+
+    <!-- ── Bluetooth (Agora: wireless headsets / earphones) ───────────────── -->
+    <uses-permission android:name="android.permission.BLUETOOTH"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>      <!-- Android 12+ required -->
+
+    <!-- ── Phone state (Agora: detect incoming call interruption) ─────────── -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+
+    <!-- ── Notifications & Alarms (existing) ─────────────────────────────── -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
@@ -31,9 +49,8 @@
             android:windowSoftInputMode="adjustResize">
 
             <meta-data
-              android:name="io.flutter.embedding.android.NormalTheme"
-              android:resource="@style/NormalTheme"
-              />
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme"/>
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
@@ -41,7 +58,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Jitsi Meet Activity (required for video/audio calls) -->
+        <!-- Jitsi Meet Activity (keep — used elsewhere in the app) -->
         <activity
             android:name="org.jitsi.meet.sdk.JitsiMeetActivity"
             android:exported="false"
@@ -50,7 +67,7 @@
             android:windowSoftInputMode="adjustResize"
             tools:replace="android:configChanges"/>
 
-        <!-- Exact alarm receiver for scheduled notifications -->
+        <!-- Exact alarm receivers for scheduled notifications -->
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
             android:exported="false"/>
@@ -66,7 +83,16 @@
 
         <meta-data
             android:name="flutterEmbedding"
-            android:value="2" />
+            android:value="2"/>
+
+        <service
+            android:name="com.google.firebase.messaging.FirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT"/>
+            </intent-filter>
+        </service>
+
     </application>
 
     <queries>
@@ -75,4 +101,5 @@
             <data android:mimeType="text/plain"/>
         </intent>
     </queries>
+
 </manifest>

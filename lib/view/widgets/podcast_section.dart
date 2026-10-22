@@ -176,17 +176,21 @@ class _PodcastSectionState extends State<PodcastSection> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(),
-          const SizedBox(height: 12),
-          _buildCategoryChips(),
-          const SizedBox(height: 14),
-          _buildContent(),
-        ],
+    return Material(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(),
+              const SizedBox(height: 12),
+              _buildCategoryChips(),
+              const SizedBox(height: 14),
+              _buildContent(),
+            ],
+          ),
+        ),
       ),
     );
   }

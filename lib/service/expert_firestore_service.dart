@@ -31,10 +31,9 @@ class ExpertFirestoreService {
   // EXPERTS
   // ════════════════════════════════════════════════════════════════════════════
 
-  /// Seed hardcoded experts into Firestore (call once on first launch or from admin).
   Future<void> seedExperts() async {
     final snap = await _expertsCol.limit(1).get();
-    if (snap.docs.isNotEmpty) return; // already seeded
+    if (snap.docs.isNotEmpty) return;
 
     final batch = _db.batch();
     for (final expert in Expert.seedExperts) {
@@ -44,7 +43,6 @@ class ExpertFirestoreService {
     await batch.commit();
   }
 
-  /// Real-time stream of all experts, optionally filtered by category.
   Stream<List<Expert>> expertsStream({String? category}) {
     Query<Map<String, dynamic>> q = _expertsCol;
     if (category != null && category != 'all') {
@@ -55,7 +53,6 @@ class ExpertFirestoreService {
         );
   }
 
-  /// One-shot fetch.
   Future<List<Expert>> fetchExperts({String? category}) async {
     Query<Map<String, dynamic>> q = _expertsCol;
     if (category != null && category != 'all') {
@@ -65,23 +62,27 @@ class ExpertFirestoreService {
     return snap.docs.map(Expert.fromDoc).toList();
   }
 
-  /// Adds a new expert (admin use).
   Future<String> addExpert(Expert expert) async {
     final ref = await _expertsCol.add(expert.toFirestore());
     return ref.id;
   }
 
-  /// Updates an expert entry.
   Future<void> updateExpert(String id, Map<String, dynamic> fields) async {
     await _expertsCol.doc(id).update(fields);
+  }
+
+  // ── NEW: fetch a single expert by their Firestore document ID ───────────────
+  // Used by ScheduleScreen to load the Expert object from a booking doc.
+  Future<Expert?> getExpertById(String expertId) async {
+    final snap = await _expertsCol.doc(expertId).get();
+    if (!snap.exists || snap.data() == null) return null;
+    return Expert.fromDoc(snap); // uses the same fromDoc you already have
   }
 
   // ════════════════════════════════════════════════════════════════════════════
   // BOOKINGS
   // ════════════════════════════════════════════════════════════════════════════
 
-  /// Checks if the user has any UNPAID completed session with this expert.
-  /// If yes, they must pay before booking again.
   Future<bool> hasUnpaidSession(String expertId) async {
     final uid = _currentUser.uid;
     final snap = await _userBookingsCol(uid)
@@ -93,7 +94,6 @@ class ExpertFirestoreService {
     return snap.docs.isNotEmpty;
   }
 
-  /// Checks if user already has a FREE trial used with this expert.
   Future<bool> hasUsedFreeTrial(String expertId) async {
     final uid = _currentUser.uid;
     final snap = await _userBookingsCol(uid)
@@ -103,20 +103,13 @@ class ExpertFirestoreService {
     return snap.docs.isNotEmpty;
   }
 
-  /// Creates a new booking in both the user's subcollection and global bookings.
   Future<String> createBooking(Booking booking) async {
     final uid = _currentUser.uid;
-
-    // Write to global collection
     final ref = await _allBookingsCol.add(booking.toFirestore());
-
-    // Mirror to user's counselling sub-collection
     await _userBookingsCol(uid).doc(ref.id).set(booking.toFirestore());
-
     return ref.id;
   }
 
-  /// Confirms payment for a booking.
   Future<void> confirmPayment({
     required String bookingId,
     required String razorpayOrderId,
@@ -130,14 +123,12 @@ class ExpertFirestoreService {
       'razorpayPaymentId': razorpayPaymentId,
     };
 
-    // Update both collections atomically
     final batch = _db.batch();
     batch.update(_allBookingsCol.doc(bookingId), fields);
     batch.update(_userBookingsCol(uid).doc(bookingId), fields);
     await batch.commit();
   }
 
-  /// Cancels a booking.
   Future<void> cancelBooking(String bookingId) async {
     final uid = _currentUser.uid;
     final fields = {'status': BookingStatus.cancelled.name};
@@ -148,7 +139,6 @@ class ExpertFirestoreService {
     await batch.commit();
   }
 
-  /// Stream of current user's bookings.
   Stream<List<Booking>> myBookingsStream() {
     final uid = _currentUser.uid;
     return _userBookingsCol(uid)
@@ -157,7 +147,6 @@ class ExpertFirestoreService {
         .map((snap) => snap.docs.map(Booking.fromDoc).toList());
   }
 
-  /// Upcoming bookings within 2 hours (for notification scheduling).
   Future<List<Booking>> fetchUpcomingBookings() async {
     final uid = _currentUser.uid;
     final now = DateTime.now();
@@ -174,14 +163,11 @@ class ExpertFirestoreService {
     return snap.docs.map(Booking.fromDoc).toList();
   }
 
-  /// Mark 1-hour notification sent.
   Future<void> markNotified(String bookingId) async {
     final uid = _currentUser.uid;
     final batch = _db.batch();
-    batch.update(
-        _allBookingsCol.doc(bookingId), {'notified1Hour': true});
-    batch.update(
-        _userBookingsCol(uid).doc(bookingId), {'notified1Hour': true});
+    batch.update(_allBookingsCol.doc(bookingId), {'notified1Hour': true});
+    batch.update(_userBookingsCol(uid).doc(bookingId), {'notified1Hour': true});
     await batch.commit();
   }
 

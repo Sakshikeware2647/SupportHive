@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../../controller/chat_controller.dart';
 import '../../../model/message_model.dart';
+import '../../quiz.dart'; // QuizResult
 
 class AIChatScreen extends StatefulWidget {
-  const AIChatScreen({super.key});
+  /// Passed from WellnessQuizScreen after quiz completion.
+  /// If not null, the controller auto-sends the quiz results to AI on first load.
+  final QuizResult? quizResult;
+
+  const AIChatScreen({super.key, this.quizResult});
 
   @override
   State<AIChatScreen> createState() => _AIChatScreenState();
@@ -21,15 +26,22 @@ class _AIChatScreenState extends State<AIChatScreen>
 
   static const Color _brandGreen = Color(0xFF4A6741);
   static const Color _lightGreen = Color(0xFFE8F5E9);
-  static const Color _bgColor = Color(0xFFF5F5F0);
+  static const Color _bgColor    = Color(0xFFF5F5F0);
+
+  // Guards against sending the quiz result more than once
+  bool _quizResultSent = false;
 
   @override
   void initState() {
     super.initState();
 
-    // Create controller ONCE here — not inline in the field
     _controller = ChatController();
     _controller.addListener(_onControllerUpdate);
+
+    // If quiz result is provided, wire up the one-shot sender
+    if (widget.quizResult != null) {
+      _controller.addListener(_sendQuizResultOnce);
+    }
 
     _dotAnimCtrl = AnimationController(
       vsync: this,
@@ -56,9 +68,25 @@ class _AIChatScreenState extends State<AIChatScreen>
     );
   }
 
+  // ── Fires exactly once: waits for controller to finish loading,
+  //    then sends the quiz result to AI.
+  void _sendQuizResultOnce() {
+    if (!_controller.isLoading && !_quizResultSent && widget.quizResult != null) {
+      _quizResultSent = true;
+      _controller.removeListener(_sendQuizResultOnce);
+      // Small delay so the UI settles before AI starts responding
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted) {
+          _controller.sendQuizResult(widget.quizResult!);
+        }
+      });
+    }
+  }
+
   @override
   void dispose() {
     _controller.removeListener(_onControllerUpdate);
+    _controller.removeListener(_sendQuizResultOnce);
     _controller.dispose();
     _inputController.dispose();
     _scrollController.dispose();
@@ -98,7 +126,8 @@ class _AIChatScreenState extends State<AIChatScreen>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           'Clear chat history?',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -110,23 +139,24 @@ class _AIChatScreenState extends State<AIChatScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.black54)),
+            child: const Text('Cancel',
+                style: TextStyle(color: Colors.black54)),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               _controller.clearChat();
             },
-            child: const Text(
-              'Clear',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-            ),
+            child: const Text('Clear',
+                style: TextStyle(
+                    color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
   }
 
+  // ── Build ─────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -135,10 +165,12 @@ class _AIChatScreenState extends State<AIChatScreen>
       body: SafeArea(
         child: _controller.isLoading
             ? const Center(
-                child: CircularProgressIndicator(color: _brandGreen),
-              )
+                child: CircularProgressIndicator(color: _brandGreen))
             : Column(
                 children: [
+                  // Banner only shown when arriving from quiz
+                  if (widget.quizResult != null)
+                    _QuizResultBanner(result: widget.quizResult!),
                   Expanded(child: _buildChatArea()),
                   _buildBottomSection(),
                 ],
@@ -163,40 +195,31 @@ class _AIChatScreenState extends State<AIChatScreen>
             width: 38,
             height: 38,
             decoration: const BoxDecoration(
-              color: _lightGreen,
-              shape: BoxShape.circle,
-            ),
+                color: _lightGreen, shape: BoxShape.circle),
             child: const Center(
-              child: Text('🐝', style: TextStyle(fontSize: 18)),
-            ),
+                child: Text('🐝', style: TextStyle(fontSize: 18))),
           ),
           const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Hive',
-                style: TextStyle(
-                  color: Colors.black87,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                ),
-              ),
+              const Text('Hive',
+                  style: TextStyle(
+                      color: Colors.black87,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15)),
               Row(
                 children: [
                   Container(
                     width: 7,
                     height: 7,
                     decoration: const BoxDecoration(
-                      color: Color(0xFF66BB6A),
-                      shape: BoxShape.circle,
-                    ),
+                        color: Color(0xFF66BB6A), shape: BoxShape.circle),
                   ),
                   const SizedBox(width: 4),
-                  Text(
-                    'Wellness Assistant',
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
-                  ),
+                  Text('Wellness Assistant',
+                      style: TextStyle(
+                          color: Colors.grey.shade500, fontSize: 11)),
                 ],
               ),
             ],
@@ -204,6 +227,24 @@ class _AIChatScreenState extends State<AIChatScreen>
         ],
       ),
       actions: [
+        // Show mood chip in AppBar when coming from quiz
+       if (widget.quizResult != null)
+  Center(
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 120),
+      child: Chip(
+        label: Text(
+          widget.quizResult!.overallMood,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 11, color: Color(0xFF4A6741)),
+        ),
+        backgroundColor: const Color(0xFFE8F5E9),
+        side: BorderSide.none,
+        padding: EdgeInsets.zero,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    ),
+  ),
         IconButton(
           icon: const Icon(Icons.delete_outline_rounded,
               color: Colors.black45, size: 22),
@@ -247,28 +288,21 @@ class _AIChatScreenState extends State<AIChatScreen>
                 ],
               ),
               child: const Center(
-                child: Text('🐝', style: TextStyle(fontSize: 40)),
-              ),
+                  child: Text('🐝', style: TextStyle(fontSize: 40))),
             ),
             const SizedBox(height: 20),
-            const Text(
-              "Hi! I'm Hive",
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
+            const Text("Hi! I'm Hive",
+                style: TextStyle(
+                    fontSize: 22, fontWeight: FontWeight.bold,
+                    color: Colors.black87)),
             const SizedBox(height: 8),
-            Text(
-              'Your personal wellness assistant',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-            ),
+            Text('Your personal wellness assistant',
+                style: TextStyle(
+                    color: Colors.grey.shade500, fontSize: 14)),
             const SizedBox(height: 4),
-            Text(
-              'Ask me anything about your wellbeing',
-              style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-            ),
+            Text('Ask me anything about your wellbeing',
+                style: TextStyle(
+                    color: Colors.grey.shade400, fontSize: 13)),
           ],
         ),
       ),
@@ -289,21 +323,18 @@ class _AIChatScreenState extends State<AIChatScreen>
               width: 30,
               height: 30,
               decoration: const BoxDecoration(
-                color: _lightGreen,
-                shape: BoxShape.circle,
-              ),
+                  color: _lightGreen, shape: BoxShape.circle),
               child: const Center(
-                child: Text('🐝', style: TextStyle(fontSize: 14)),
-              ),
+                  child: Text('🐝', style: TextStyle(fontSize: 14))),
             ),
             const SizedBox(width: 8),
           ],
           Flexible(
             child: Container(
               constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.75,
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  maxWidth: MediaQuery.of(context).size.width * 0.75),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: isUser ? _brandGreen : Colors.white,
                 borderRadius: BorderRadius.only(
@@ -339,7 +370,9 @@ class _AIChatScreenState extends State<AIChatScreen>
                     child: Text(
                       _formatTime(message.timestamp),
                       style: TextStyle(
-                        color: isUser ? Colors.white60 : Colors.grey.shade400,
+                        color: isUser
+                            ? Colors.white60
+                            : Colors.grey.shade400,
                         fontSize: 10,
                       ),
                     ),
@@ -364,16 +397,14 @@ class _AIChatScreenState extends State<AIChatScreen>
             width: 30,
             height: 30,
             decoration: const BoxDecoration(
-              color: _lightGreen,
-              shape: BoxShape.circle,
-            ),
+                color: _lightGreen, shape: BoxShape.circle),
             child: const Center(
-              child: Text('🐝', style: TextStyle(fontSize: 14)),
-            ),
+                child: Text('🐝', style: TextStyle(fontSize: 14))),
           ),
           const SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: const BorderRadius.only(
@@ -415,21 +446,20 @@ class _AIChatScreenState extends State<AIChatScreen>
           width: 8,
           height: 8,
           decoration: const BoxDecoration(
-            color: _brandGreen,
-            shape: BoxShape.circle,
-          ),
+              color: _brandGreen, shape: BoxShape.circle),
         ),
       );
 
   Widget _buildQuickReplies() {
+    // Hide quick replies once typing starts or conversation has multiple messages
     if (_controller.isTyping || _controller.messages.length > 1) {
       return const SizedBox.shrink();
     }
     final chips = [
-      ("😰", "I'm feeling stressed"),
-      ("🎵", "How do I find music?"),
-      ("😟", "Help with anxiety"),
-      ("🧑‍⚕️", "Where is counselling?"),
+      ('😰', "I'm feeling stressed"),
+      ('🎵', 'How do I find music?'),
+      ('😟', 'Help with anxiety'),
+      ('🧑‍⚕️', 'Where is counselling?'),
     ];
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -443,26 +473,25 @@ class _AIChatScreenState extends State<AIChatScreen>
           itemBuilder: (_, i) => GestureDetector(
             onTap: () => _controller.sendMessage(chips[i].$2),
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: _lightGreen,
                 borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: _brandGreen.withOpacity(0.25)),
+                border: Border.all(
+                    color: _brandGreen.withOpacity(0.25)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(chips[i].$1, style: const TextStyle(fontSize: 14)),
+                  Text(chips[i].$1,
+                      style: const TextStyle(fontSize: 14)),
                   const SizedBox(width: 6),
-                  Text(
-                    chips[i].$2,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: _brandGreen,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                  Text(chips[i].$2,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          color: _brandGreen,
+                          fontWeight: FontWeight.w500)),
                 ],
               ),
             ),
@@ -521,11 +550,12 @@ class _AIChatScreenState extends State<AIChatScreen>
                 maxLines: 4,
                 minLines: 1,
                 textCapitalization: TextCapitalization.sentences,
-                style: const TextStyle(fontSize: 14, color: Colors.black87),
+                style: const TextStyle(
+                    fontSize: 14, color: Colors.black87),
                 decoration: InputDecoration(
                   hintText: "Share what's on your mind…",
-                  hintStyle:
-                      TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                  hintStyle: TextStyle(
+                      color: Colors.grey.shade400, fontSize: 14),
                   contentPadding: const EdgeInsets.symmetric(
                       horizontal: 18, vertical: 12),
                   border: InputBorder.none,
@@ -540,7 +570,9 @@ class _AIChatScreenState extends State<AIChatScreen>
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: _controller.isTyping ? Colors.grey.shade300 : _brandGreen,
+              color: _controller.isTyping
+                  ? Colors.grey.shade300
+                  : _brandGreen,
               shape: BoxShape.circle,
               boxShadow: _controller.isTyping
                   ? []
@@ -559,7 +591,8 @@ class _AIChatScreenState extends State<AIChatScreen>
                 customBorder: const CircleBorder(),
                 onTap: _controller.isTyping ? null : _sendMessage,
                 child: const Center(
-                  child: Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                  child: Icon(Icons.send_rounded,
+                      color: Colors.white, size: 20),
                 ),
               ),
             ),
@@ -570,9 +603,76 @@ class _AIChatScreenState extends State<AIChatScreen>
   }
 
   String _formatTime(DateTime dt) {
-    final h = dt.hour > 12 ? dt.hour - 12 : dt.hour == 0 ? 12 : dt.hour;
+    final h = dt.hour > 12
+        ? dt.hour - 12
+        : dt.hour == 0
+            ? 12
+            : dt.hour;
     final m = dt.minute.toString().padLeft(2, '0');
     final period = dt.hour >= 12 ? 'PM' : 'AM';
     return '$h:$m $period';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Quiz result summary banner — shown at the top of the chat
+// ─────────────────────────────────────────────────────────────────
+class _QuizResultBanner extends StatelessWidget {
+  final QuizResult result;
+  const _QuizResultBanner({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _moodColor(result.totalScore);
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Text(_moodEmoji(result.totalScore),
+              style: const TextStyle(fontSize: 22)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Quiz Result: ${result.overallMood}',
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                Text(
+                  'Score ${result.totalScore}/24 · Hive is analysing your results…',
+                  style: TextStyle(
+                      color: color.withOpacity(0.7), fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _moodColor(int score) {
+    if (score >= 20) return const Color(0xFF22C55E);
+    if (score >= 14) return const Color(0xFF4A6741);
+    if (score >= 8)  return const Color(0xFFF59E0B);
+    return const Color(0xFFEF4444);
+  }
+
+  String _moodEmoji(int score) {
+    if (score >= 20) return '🌟';
+    if (score >= 14) return '🌿';
+    if (score >= 8)  return '🌤️';
+    return '🌧️';
   }
 }

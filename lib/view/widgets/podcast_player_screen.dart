@@ -5,7 +5,6 @@ import '../../model/podcast.dart';
 import '../../service/audio_service.dart';
 import '../../service/podcast_service.dart';
 import 'podcast_card.dart';
-import 'create_podcast_screen.dart';
 
 typedef ProgressCallback = void Function(
     String podcastId, int positionSeconds, int durationSeconds);
@@ -37,7 +36,6 @@ class _PodcastPlayerScreenState extends State<PodcastPlayerScreen> {
   List<Podcast> _recommended = [];
   Duration _savedProgress = Duration.zero;
 
-  // Stream subscriptions — must be cancelled in dispose to prevent leaks
   StreamSubscription<Duration?>? _durationSub;
   StreamSubscription<Duration>? _positionSub;
   StreamSubscription<ProcessingState>? _stateSub;
@@ -84,17 +82,14 @@ class _PodcastPlayerScreenState extends State<PodcastPlayerScreen> {
       _positionSub = AudioService.positionStream.listen((p) {
         if (!mounted) return;
         setState(() => _position = p);
-        // Report progress every 5 seconds
         if (p.inSeconds % 5 == 0 && _duration.inSeconds > 0) {
           widget.onProgressUpdate
               ?.call(widget.podcast.id, p.inSeconds, _duration.inSeconds);
         }
       });
 
-      _stateSub =
-          AudioService.processingStateStream.listen((state) {
+      _stateSub = AudioService.processingStateStream.listen((state) {
         if (state == ProcessingState.completed && mounted) {
-          // Episode finished — clear saved progress and report 100%
           PodcastService.instance.clearProgress(widget.podcast.id);
           widget.onProgressUpdate
               ?.call(widget.podcast.id, 0, _duration.inSeconds);
@@ -112,7 +107,7 @@ class _PodcastPlayerScreenState extends State<PodcastPlayerScreen> {
     }
   }
 
-  // ── Extras (recommended + liked) ───────────────────────────────────────────
+  // ── Extras ──────────────────────────────────────────────────────────────────
 
   Future<void> _loadExtras() async {
     try {
@@ -126,9 +121,7 @@ class _PodcastPlayerScreenState extends State<PodcastPlayerScreen> {
         _recommended = results[0] as List<Podcast>;
         _isLiked = liked.contains(widget.podcast.id);
       });
-    } catch (_) {
-      // Non-critical — ignore errors
-    }
+    } catch (_) {}
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -150,20 +143,17 @@ class _PodcastPlayerScreenState extends State<PodcastPlayerScreen> {
   Future<void> _toggleLike() async {
     final newLiked = !_isLiked;
     setState(() => _isLiked = newLiked);
-    await PodcastService.instance
-        .toggleLike(widget.podcast.id, newLiked);
+    await PodcastService.instance.toggleLike(widget.podcast.id, newLiked);
   }
 
   // ── Dispose ─────────────────────────────────────────────────────────────────
 
   @override
   void dispose() {
-    // Cancel all stream subscriptions
     _durationSub?.cancel();
     _positionSub?.cancel();
     _stateSub?.cancel();
 
-    // Save progress on exit
     if (_duration.inSeconds > 0 && _position.inSeconds > 0) {
       PodcastService.instance
           .saveProgress(widget.podcast.id, _position);
@@ -205,8 +195,7 @@ class _PodcastPlayerScreenState extends State<PodcastPlayerScreen> {
             Text(
               _error!,
               textAlign: TextAlign.center,
-              style:
-                  const TextStyle(color: Colors.black54, fontSize: 14),
+              style: const TextStyle(color: Colors.black54, fontSize: 14),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
@@ -242,14 +231,13 @@ class _PodcastPlayerScreenState extends State<PodcastPlayerScreen> {
         if (_savedProgress > Duration.zero &&
             _savedProgress.inSeconds > 5)
           SliverToBoxAdapter(child: _buildResumeChip()),
-        SliverToBoxAdapter(child: _buildCreateButton()),
+        // ── "Create Podcast" button REMOVED — admin-only via admin panel ──
         if (_recommended.isNotEmpty) ...[
           SliverToBoxAdapter(child: _buildRecommendedHeader()),
           SliverList(
             delegate: SliverChildBuilderDelegate(
               (_, i) => Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: PodcastCard(
                   key: ValueKey(_recommended[i].id),
                   podcast: _recommended[i],
@@ -291,11 +279,10 @@ class _PodcastPlayerScreenState extends State<PodcastPlayerScreen> {
             child: Text(
               'Now Playing',
               textAlign: TextAlign.center,
-              style:
-                  TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
           ),
-          const SizedBox(width: 48), // balance the back button
+          const SizedBox(width: 48),
         ],
       ),
     );
@@ -380,8 +367,7 @@ class _PodcastPlayerScreenState extends State<PodcastPlayerScreen> {
           ),
           const SizedBox(height: 4),
           Text(widget.podcast.author,
-              style:
-                  const TextStyle(color: Colors.grey, fontSize: 14)),
+              style: const TextStyle(color: Colors.grey, fontSize: 14)),
           if (widget.podcast.description.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
@@ -390,9 +376,7 @@ class _PodcastPlayerScreenState extends State<PodcastPlayerScreen> {
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 12,
-                  height: 1.5),
+                  color: Colors.grey.shade600, fontSize: 12, height: 1.5),
             ),
           ],
         ],
@@ -425,8 +409,8 @@ class _PodcastPlayerScreenState extends State<PodcastPlayerScreen> {
               value: val,
               max: maxSec > 0 ? maxSec : 1.0,
               onChanged: maxSec > 0
-                  ? (v) => AudioService.seekTo(
-                      Duration(seconds: v.toInt()))
+                  ? (v) =>
+                      AudioService.seekTo(Duration(seconds: v.toInt()))
                   : null,
             ),
           ),
@@ -436,11 +420,11 @@ class _PodcastPlayerScreenState extends State<PodcastPlayerScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(_fmt(_position),
-                    style: const TextStyle(
-                        fontSize: 12, color: Colors.grey)),
+                    style:
+                        const TextStyle(fontSize: 12, color: Colors.grey)),
                 Text(_fmt(_duration),
-                    style: const TextStyle(
-                        fontSize: 12, color: Colors.grey)),
+                    style:
+                        const TextStyle(fontSize: 12, color: Colors.grey)),
               ],
             ),
           ),
@@ -457,11 +441,8 @@ class _PodcastPlayerScreenState extends State<PodcastPlayerScreen> {
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _controlBtn(
-              Icons.replay_10_rounded,
-              28,
-              () => AudioService.skipBackward(seconds: 10),
-            ),
+            _controlBtn(Icons.replay_10_rounded, 28,
+                () => AudioService.skipBackward(seconds: 10)),
             const SizedBox(width: 24),
             GestureDetector(
               onTap: () => playing
@@ -491,11 +472,8 @@ class _PodcastPlayerScreenState extends State<PodcastPlayerScreen> {
               ),
             ),
             const SizedBox(width: 24),
-            _controlBtn(
-              Icons.forward_10_rounded,
-              28,
-              () => AudioService.skipForward(seconds: 10),
-            ),
+            _controlBtn(Icons.forward_10_rounded, 28,
+                () => AudioService.skipForward(seconds: 10)),
           ],
         );
       },
@@ -516,12 +494,11 @@ class _PodcastPlayerScreenState extends State<PodcastPlayerScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Speed toggle
           GestureDetector(
             onTap: _changeSpeed,
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 8),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
@@ -549,8 +526,6 @@ class _PodcastPlayerScreenState extends State<PodcastPlayerScreen> {
               ),
             ),
           ),
-
-          // Like button
           GestureDetector(
             onTap: _toggleLike,
             child: Container(
@@ -574,8 +549,6 @@ class _PodcastPlayerScreenState extends State<PodcastPlayerScreen> {
               ),
             ),
           ),
-
-          // Share (placeholder — wire up Share plugin as needed)
           GestureDetector(
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -615,8 +588,7 @@ class _PodcastPlayerScreenState extends State<PodcastPlayerScreen> {
         decoration: BoxDecoration(
           color: _brandGreen.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border:
-              Border.all(color: _brandGreen.withValues(alpha: 0.3)),
+          border: Border.all(color: _brandGreen.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -639,38 +611,11 @@ class _PodcastPlayerScreenState extends State<PodcastPlayerScreen> {
                 padding: EdgeInsets.zero,
                 minimumSize: const Size(50, 30),
               ),
-              child: const Text(
-                'Restart',
-                style: TextStyle(color: _brandGreen, fontSize: 12),
-              ),
+              child: const Text('Restart',
+                  style:
+                      TextStyle(color: _brandGreen, fontSize: 12)),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCreateButton() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: ElevatedButton.icon(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (_) => const CreatePodcastScreen()),
-        ),
-        icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: const Text(
-          'Create a Podcast',
-          style:
-              TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF3D7A2A),
-          minimumSize: const Size(double.infinity, 48),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14)),
-          elevation: 3,
         ),
       ),
     );
@@ -681,8 +626,7 @@ class _PodcastPlayerScreenState extends State<PodcastPlayerScreen> {
       padding: EdgeInsets.fromLTRB(16, 4, 16, 12),
       child: Text(
         'You Might Also Like',
-        style:
-            TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
       ),
     );
   }
