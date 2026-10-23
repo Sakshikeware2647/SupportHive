@@ -108,15 +108,25 @@ Do not commit private keys, service-account credentials, `.env` files, passwords
 
 ## 📱 App Screenshots
 
-SupportHive mobile application screenshots:
+### 🏠 Home Screen
+![SupportHive Home Screen](screenshots/home.png)
 
-### Home Screen
-![Home Screen](screenshots/home.png)
+### ✨ Features
+![SupportHive Features](screenshots/features.png)
 
-### Stress Management
-![Stress Management](screenshots/stress_management.png)
+### 🤖 AI Chat Support
+![SupportHive AI Chat](screenshots/Ai_chat.png)
 
-For more screenshots, visit the [screenshots folder](screenshots/).
+### 🎮 Interactive Games
+![SupportHive Games](screenshots/games.png)
+
+### 📞 Calling and Support
+![SupportHive Calling](screenshots/calling.png)
+
+### 💳 Payment Section
+![SupportHive Payment](screenshots/section_payment.png)
+
+More screenshots are available in the [screenshots folder](screenshots/).
 
 
 ## Author
