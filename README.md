@@ -106,9 +106,22 @@ Do not commit private keys, service-account credentials, `.env` files, passwords
 - Continue refining the user interface and user experience.
 - Expand stress-management resources and support features.
 
+## 📱 App Screenshots
+
+SupportHive mobile application screenshots:
+
+### Home Screen
+![Home Screen](screenshots/home.png)
+
+### Stress Management
+![Stress Management](screenshots/stress_management.png)
+
+For more screenshots, visit the [screenshots folder](screenshots/).
+
+
 ## Author
 
-**Ameya Pathak**
+**Sakshi Keware**
 
 GitHub: [SupportHive Repository](https://github.com/Sakshikeware2647/SupportHive/tree/feature-kartik)
 
