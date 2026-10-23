@@ -126,8 +126,19 @@ Do not commit private keys, service-account credentials, `.env` files, passwords
 ### 💳 Payment Section
 ![SupportHive Payment](screenshots/section_payment.png)
 
-More screenshots are available in the [screenshots folder](screenshots/).
+### 🛠️ Admin Dashboard
 
+The admin dashboard provides an overview of experts, availability, bookings, and payment information to support administration of the platform.
+
+![SupportHive Admin Dashboard](screenshots/admin_dashboard.png)
+
+### 🔥 Firebase Project Overview
+
+SupportHive uses Firebase for its configured backend services. The Firebase console provides an overview of project services and usage statistics.
+
+![SupportHive Firebase Project Overview](screenshots/firebase_overview.png)
+
+More screenshots are available in the [screenshots folder](screenshots/).
 
 ## Author
 
